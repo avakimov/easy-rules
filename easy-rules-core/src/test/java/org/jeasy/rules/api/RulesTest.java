@@ -30,6 +30,8 @@ import org.junit.Test;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -139,6 +141,29 @@ public class RulesTest {
         rules.unregister(null);
     }
 
+    @Test
+    public void rulesDoesNotSupportComparable() {
+        ComparableDummyRule lessAwesomeRule = new ComparableDummyRule(1);
+        ComparableDummyRule moreAwesomeRule = new ComparableDummyRule(2);
+        SortedSet<ComparableDummyRule> simpleCollection = new TreeSet<>();
+        simpleCollection.add(moreAwesomeRule);
+        simpleCollection.add(lessAwesomeRule);
+
+        // Simple TreeSet is okay with ComparableDummyRule
+        assertThat(simpleCollection.first()).isEqualTo(lessAwesomeRule);
+        assertThat(simpleCollection.last()).isEqualTo(moreAwesomeRule);
+
+        try {
+            // Rules throws because compareTo is called for ComparableDummyRule and RulesProxy
+            new Rules(
+                    lessAwesomeRule,
+                    moreAwesomeRule
+            );
+        } catch (IllegalArgumentException e) {
+            assertThat(e.getMessage()).isEqualTo("argument type mismatch");
+        }
+    }
+
     @org.jeasy.rules.annotation.Rule
 	static class DummyRule {
         @Condition
@@ -146,6 +171,26 @@ public class RulesTest {
 
         @Action
         public void then() { }
+    }
+
+    @org.jeasy.rules.annotation.Rule
+    public static class ComparableDummyRule implements Comparable<ComparableDummyRule> {
+        private final int awesomeness;
+
+        public ComparableDummyRule(int awesomeness) {
+            this.awesomeness = awesomeness;
+        }
+
+        @Condition
+        public boolean when() { return true; }
+
+        @Action
+        public void then() {  }
+
+        @Override
+        public int compareTo(ComparableDummyRule comparableDummyRule) {
+            return Integer.compare(awesomeness, comparableDummyRule.awesomeness);
+        }
     }
 
 }
